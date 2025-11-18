@@ -29,22 +29,29 @@ def load_resources():
 
 model, scaler, label_encoder = load_resources()
 
-# ----------------------  LOTTIE ANIMATION  ----------------------
-def load_lottie(url):
-    response = requests.get(url)
-    if response.status_code != 200:
+# ----------------------  LOTTIE ANIMATION (SAFE LOADER) ----------------------
+from streamlit_lottie import st_lottie
+import requests
+
+def load_lottie_safe(url):
+    try:
+        r = requests.get(url)
+        if r.status_code != 200:
+            return None
+        return r.json()
+    except:
         return None
-    return response.json()
 
-# Crop Growing Animation
-lottie_url = "https://assets9.lottiefiles.com/packages/lf20_x1vj0fxu.json"
-lottie_animation = load_lottie(lottie_url)
+lottie_url = "https://assets2.lottiefiles.com/packages/lf20_GIyuXJ.json"
+lottie_animation = load_lottie_safe(lottie_url)
 
+# Center the animation
 colA, colB, colC = st.columns([1,2,1])
 with colB:
-    import streamlit_lottie
-    streamlit_lottie.st_lottie(lottie_animation, height=200)
-
+    if lottie_animation:
+        st_lottie(lottie_animation, height=220)
+    else:
+        st.info("🌱 Welcome! (Animation failed to load, but app is working fine)")
 
 # ----------------------  CSS FOR UI  ----------------------
 st.markdown(
@@ -196,4 +203,5 @@ if rainfall < 50:
         file_name="crop_recommendation_report.txt",
         mime="text/plain"
     )
+
 
