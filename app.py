@@ -57,6 +57,29 @@ st.markdown(
 # ----------------------  HEADER  ----------------------
 st.markdown("<h1 class='main-title'>🌾 Crop Recommendation System</h1>", unsafe_allow_html=True)
 
+# ---------------------- LOTTIE ANIMATION (CROP GROWING) ----------------------
+from streamlit_lottie import st_lottie
+
+def load_lottie_safe(url):
+    try:
+        r = requests.get(url)
+        if r.status_code != 200:
+            return None
+        return r.json()
+    except:
+        return None
+
+# Beautiful plant-growing animation
+lottie_url = "https://assets2.lottiefiles.com/packages/lf20_GIyuXJ.json"
+lottie_animation = load_lottie_safe(lottie_url)
+
+colA, colB, colC = st.columns([1, 2, 1])
+with colB:
+    if lottie_animation:
+        st_lottie(lottie_animation, height=180)
+    else:
+        st.info("🌱 (Animation failed to load, but the app is running fine.)")
+
 st.markdown("---")
 
 # ----------------------  USER INPUT FIELDS  ----------------------
@@ -119,6 +142,31 @@ if st.button("🌾 Recommend Best Crop", use_container_width=True):
         for name, score in zip(top3_labels, top3_scores):
             st.write(f"**{name.upper()}** — {round(score*100, 2)}% suitability")
 
+# ---------------------- WEATHER & SOIL ADVISORY ----------------------
+st.subheader("🌦️ Weather & Soil Advisory")
+
+if humidity > 80:
+    st.info("💧 High humidity detected — good for rice, papaya, coconut.")
+
+if ph < 6:
+    st.warning("⚠️ Soil is acidic — avoid crops like wheat; prefer tea, citrus fruits, or pineapple.")
+
+if ph > 8:
+    st.warning("⚠️ Soil is highly alkaline — suitable for barley, cotton, and millets.")
+
+if temperature > 35:
+    st.error("🌡️ Very hot climate — choose heat-tolerant crops like millet, sorghum, or groundnut.")
+
+if temperature < 15:
+    st.info("❄️ Cool temperature detected — suitable for crops like peas, cabbage, and wheat.")
+
+if rainfall < 50:
+    st.warning("🌧️ Very low rainfall — prefer drought-resistant crops like chickpea, bajra, or ragi.")
+
+if rainfall > 200:
+    st.info("🌧️ Heavy rainfall — suitable for rice, jute, rubber, and sugarcane.")
+
+    
     # ---------------------- INPUT FEATURE GRAPH ----------------------
     st.subheader("📊 Input Feature Distribution")
 
@@ -164,3 +212,4 @@ if st.button("🌾 Recommend Best Crop", use_container_width=True):
         file_name="crop_recommendation_report.txt",
         mime="text/plain"
     )
+
