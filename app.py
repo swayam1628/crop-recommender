@@ -7,15 +7,16 @@ import numpy as np
 import pandas as pd
 import joblib
 import matplotlib.pyplot as plt
+import json
 import requests
 import io
-from streamlit_lottie import st_lottie
 
 # ----------------------  PAGE CONFIG  ----------------------
 st.set_page_config(
     page_title="Crop Recommendation",
     page_icon="🌱",
-    layout="wide"
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
 
 # ----------------------  LOAD ARTIFACTS  ----------------------
@@ -28,20 +29,6 @@ def load_resources():
 
 model, scaler, label_encoder = load_resources()
 
-# ----------------------  SAFE LOTTIE LOADER  ----------------------
-def load_lottie(url):
-    try:
-        r = requests.get(url)
-        if r.status_code != 200:
-            return None
-        return r.json()
-    except:
-        return None
-
-# Working crop-growing animation (NO 404)
-lottie_url = "https://lottie.host/6bb1b9cd-3c29-4a71-94f2-7a5e768f8b08/6JpJcxS0s3.json"
-lottie_animation = load_lottie(lottie_url)
-
 # ----------------------  CSS FOR UI  ----------------------
 st.markdown(
     """
@@ -51,7 +38,6 @@ st.markdown(
         font-weight: 800;
         color: #2E7D32;
         text-align: center;
-        margin-top: -20px;
     }
     .prediction-box {
         padding: 20px;
@@ -69,14 +55,30 @@ st.markdown(
 )
 
 # ----------------------  HEADER  ----------------------
-colA, colB, colC = st.columns([1,2,1])
+st.markdown("<h1 class='main-title'>🌾 Crop Recommendation System</h1>", unsafe_allow_html=True)
+
+# ---------------------- LOTTIE ANIMATION (CROP GROWING) ----------------------
+from streamlit_lottie import st_lottie
+
+def load_lottie_safe(url):
+    try:
+        r = requests.get(url)
+        if r.status_code != 200:
+            return None
+        return r.json()
+    except:
+        return None
+
+# Beautiful plant-growing animation
+lottie_url = "https://assets2.lottiefiles.com/packages/lf20_GIyuXJ.json"
+lottie_animation = load_lottie_safe(lottie_url)
+
+colA, colB, colC = st.columns([1, 2, 1])
 with colB:
     if lottie_animation:
-        st_lottie(lottie_animation, height=160)
+        st_lottie(lottie_animation, height=180)
     else:
-        st.write("🌱")
-
-st.markdown("<h1 class='main-title'>Crop Recommendation System</h1>", unsafe_allow_html=True)
+        st.info("🌱 (Animation failed to load, but the app is running fine.)")
 
 st.markdown("---")
 
@@ -97,14 +99,14 @@ col4, col5, col6 = st.columns(3)
 with col4:
     humidity = st.number_input("💧 Humidity (%)", min_value=0.0, value=70.0)
 with col5:
-    rainfall = st.number_input("🌧️ Rainfall (mm)", min_value=0.0, value=200.0)
+    rainfall = st.number_input("🌧 Rainfall (mm)", min_value=0.0, value=200.0)
 with col6:
-    ph = st.number_input("⚗️ Soil pH", min_value=0.0, max_value=14.0, value=6.5)
+    ph = st.number_input("⚗ Soil pH", min_value=0.0, max_value=14.0, value=6.5)
 
 # Line 3 → Center Temperature
 colA, colB, colC = st.columns([1,2,1])
 with colB:
-    temperature = st.number_input("🌡️ Temperature (°C)", value=25.0)
+    temperature = st.number_input("🌡 Temperature (°C)", value=25.0)
 
 st.markdown("---")
 
@@ -138,32 +140,33 @@ if st.button("🌾 Recommend Best Crop", use_container_width=True):
 
         st.subheader("🥇 Top 3 Best-Suited Crops")
         for name, score in zip(top3_labels, top3_scores):
-            st.write(f"**{name.upper()}** — {round(score*100, 2)}% suitability")
+            st.write(f"{name.upper()}** — {round(score*100, 2)}% suitability")
 
-    # ---------------------- WEATHER & SOIL ADVISORY ----------------------
-    st.subheader("🌦️ Weather & Soil Advisory")
+# ---------------------- WEATHER & SOIL ADVISORY ----------------------
+st.subheader("🌦 Weather & Soil Advisory")
 
-    if humidity > 80:
-        st.info("💧 High humidity detected — good for rice, papaya, coconut.")
+if humidity > 80:
+    st.info("💧 High humidity detected — good for rice, papaya, coconut.")
 
-    if ph < 6:
-        st.warning("⚠️ Soil is acidic — avoid wheat; prefer tea, citrus, pineapple.")
+if ph < 6:
+    st.warning("⚠ Soil is acidic — avoid crops like wheat; prefer tea, citrus fruits, or pineapple.")
 
-    if ph > 8:
-        st.warning("⚠️ Highly alkaline soil — suitable for barley, cotton, millets.")
+if ph > 8:
+    st.warning("⚠ Soil is highly alkaline — suitable for barley, cotton, and millets.")
 
-    if temperature > 35:
-        st.error("🌡️ Very hot climate — choose millet, sorghum, groundnut.")
+if temperature > 35:
+    st.error("🌡 Very hot climate — choose heat-tolerant crops like millet, sorghum, or groundnut.")
 
-    if temperature < 15:
-        st.info("❄️ Cool climate — suitable for peas, cabbage, wheat.")
+if temperature < 15:
+    st.info("❄ Cool temperature detected — suitable for crops like peas, cabbage, and wheat.")
 
-    if rainfall < 50:
-        st.warning("🌧️ Low rainfall — choose bajra, chickpea, ragi.")
+if rainfall < 50:
+    st.warning("🌧 Very low rainfall — prefer drought-resistant crops like chickpea, bajra, or ragi.")
 
-    if rainfall > 200:
-        st.info("🌧️ Heavy rainfall — best for rice, jute, rubber, sugarcane.")
+if rainfall > 200:
+    st.info("🌧 Heavy rainfall — suitable for rice, jute, rubber, and sugarcane.")
 
+    
     # ---------------------- INPUT FEATURE GRAPH ----------------------
     st.subheader("📊 Input Feature Distribution")
 
@@ -194,9 +197,9 @@ if st.button("🌾 Recommend Best Crop", use_container_width=True):
     ➤ Recommended Crop: {crop.upper()}
 
     Top 3 Crop Suitability:
-    {top3_labels[0].upper()} — {top3_scores[0]:.2f}
-    {top3_labels[1].upper()} — {top3_scores[1]:.2f}
-    {top3_labels[2].upper()} — {top3_scores[2]:.2f}
+    1. {top3_labels[0].upper()} — {top3_scores[0]:.2f}
+    2. {top3_labels[1].upper()} — {top3_scores[1]:.2f}
+    3. {top3_labels[2].upper()} — {top3_scores[2]:.2f}
     """
 
     buffer = io.BytesIO()
@@ -206,6 +209,6 @@ if st.button("🌾 Recommend Best Crop", use_container_width=True):
     st.download_button(
         label="📥 Download Report",
         data=buffer,
-        file_name="crop_report.txt",
+        file_name="crop_recommendation_report.txt",
         mime="text/plain"
     )
