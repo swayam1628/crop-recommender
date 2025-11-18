@@ -36,13 +36,15 @@ def load_lottie(url):
         return None
     return response.json()
 
-lottie_url = "https://assets9.lottiefiles.com/packages/lf20_touohxv0.json"
+# Crop Growing Animation
+lottie_url = "https://assets9.lottiefiles.com/packages/lf20_x1vj0fxu.json"
 lottie_animation = load_lottie(lottie_url)
 
-st_lottie = st.columns([1,2,1])[1]
-with st_lottie:
+colA, colB, colC = st.columns([1,2,1])
+with colB:
     import streamlit_lottie
-    streamlit_lottie.st_lottie(lottie_animation, height=160)
+    streamlit_lottie.st_lottie(lottie_animation, height=200)
+
 
 # ----------------------  CSS FOR UI  ----------------------
 st.markdown(
@@ -134,18 +136,20 @@ if st.button("🌾 Recommend Best Crop", use_container_width=True):
         for name, score in zip(top3_labels, top3_scores):
             st.write(f"**{name.upper()}** — {round(score*100, 2)}% suitability")
 
-    # ---------------------- WEATHER ADVISORY ----------------------
-    st.subheader("🌦️ Weather & Soil Advisory")
+   # ---------------------- WEATHER ADVISORY ----------------------
+st.subheader("🌦️ Weather & Soil Advisory")
 
-    if humidity > 80:
-        st.info("💧 High humidity detected — good for rice, papaya, coconut.")
-    if ph < 6:
-        st.warning("⚠️ Soil is acidic — avoid crops like wheat and prefer tea or citrus crops.")
-    if temperature > 35:
-        st.error("🌡️ Very hot climate — choose heat-tolerant crops like millet or sorghum.")
+if humidity > 80:
+    st.info("💧 High humidity detected — good for rice, papaya, coconut.")
 
-    if rainfall < 50:
-        st.warning("🌧️ Very low rainfall — prefer drought-resistant crops like chickpea or bajra.")
+if ph < 6:
+    st.warning("⚠️ Soil is acidic — avoid crops like wheat; prefer tea or citrus crops.")
+
+if temperature > 35:
+    st.error("🌡️ Very hot climate — choose heat-tolerant crops like millet or sorghum.")
+
+if rainfall < 50:
+    st.warning("🌧️ Very low rainfall — prefer drought-resistant crops like chickpea or bajra.")
 
     # ---------------------- INPUT FEATURE GRAPH ----------------------
     st.subheader("📊 Input Feature Distribution")
@@ -192,3 +196,4 @@ if st.button("🌾 Recommend Best Crop", use_container_width=True):
         file_name="crop_recommendation_report.txt",
         mime="text/plain"
     )
+
