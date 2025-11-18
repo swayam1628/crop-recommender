@@ -7,6 +7,8 @@ import numpy as np
 import pandas as pd
 import joblib
 import matplotlib.pyplot as plt
+import json
+import requests
 import io
 
 # ----------------------  PAGE CONFIG  ----------------------
@@ -27,6 +29,21 @@ def load_resources():
 
 model, scaler, label_encoder = load_resources()
 
+# ----------------------  LOTTIE ANIMATION  ----------------------
+def load_lottie(url):
+    response = requests.get(url)
+    if response.status_code != 200:
+        return None
+    return response.json()
+
+lottie_url = "https://assets9.lottiefiles.com/packages/lf20_touohxv0.json"
+lottie_animation = load_lottie(lottie_url)
+
+st_lottie = st.columns([1,2,1])[1]
+with st_lottie:
+    import streamlit_lottie
+    streamlit_lottie.st_lottie(lottie_animation, height=160)
+
 # ----------------------  CSS FOR UI  ----------------------
 st.markdown(
     """
@@ -37,12 +54,6 @@ st.markdown(
         color: #2E7D32;
         text-align: center;
     }
-    .sub-title {
-        font-size: 17px;
-        text-align: center;
-        color: #555;
-        margin-bottom: 30px;
-    }
     .prediction-box {
         padding: 20px;
         border-radius: 15px;
@@ -51,6 +62,7 @@ st.markdown(
         font-size: 22px;
         font-weight: bold;
         text-align: center;
+        margin-top: 20px;
     }
     </style>
     """,
@@ -59,50 +71,84 @@ st.markdown(
 
 # ----------------------  HEADER  ----------------------
 st.markdown("<h1 class='main-title'>🌾 Crop Recommendation System</h1>", unsafe_allow_html=True)
-st.markdown("<p class='sub-title'>Predict the best crop based on soil & climate conditions</p>", unsafe_allow_html=True)
 
 st.markdown("---")
 
 # ----------------------  USER INPUT FIELDS  ----------------------
 st.header("🌱 Enter Environmental Parameters")
 
+# Line 1 → N, P, K
 col1, col2, col3 = st.columns(3)
-
 with col1:
     N = st.number_input("🌱 Nitrogen (N)", min_value=0.0, value=80.0)
-    P = st.number_input("🌿 Phosphorus (P)", min_value=0.0, value=40.0)
 with col2:
-    K = st.number_input("🌾 Potassium (K)", min_value=0.0, value=40.0)
-    temperature = st.number_input("🌡️ Temperature (°C)", value=25.0)
+    P = st.number_input("🌿 Phosphorus (P)", min_value=0.0, value=40.0)
 with col3:
-    humidity = st.number_input("💧 Humidity (%)", value=70.0)
+    K = st.number_input("🌾 Potassium (K)", min_value=0.0, value=40.0)
+
+# Line 2 → Humidity, Rainfall, Soil pH
+col4, col5, col6 = st.columns(3)
+with col4:
+    humidity = st.number_input("💧 Humidity (%)", min_value=0.0, value=70.0)
+with col5:
+    rainfall = st.number_input("🌧️ Rainfall (mm)", min_value=0.0, value=200.0)
+with col6:
     ph = st.number_input("⚗️ Soil pH", min_value=0.0, max_value=14.0, value=6.5)
-    rainfall = st.number_input("🌧️ Rainfall (mm)", value=200.0)
+
+# Line 3 → Center Temperature
+colA, colB, colC = st.columns([1,2,1])
+with colB:
+    temperature = st.number_input("🌡️ Temperature (°C)", value=25.0)
 
 st.markdown("---")
 
 # ----------------------  PREDICTION BUTTON  ----------------------
 if st.button("🌾 Recommend Best Crop", use_container_width=True):
 
-    # Prepare input sample
+    # Create input
     sample = [[N, P, K, temperature, humidity, ph, rainfall]]
     sample_scaled = scaler.transform(sample)
 
+    # Prediction
     pred = model.predict(sample_scaled)
     crop = label_encoder.inverse_transform(pred)[0]
 
-    # Display Prediction
+    # Display main crop
     st.markdown(
         f"""
         <div class='prediction-box'>
-            🌱 Recommended Crop: <span style='color:#1B5E20;'>{crop.upper()}</span>
+            🌱 <strong>Recommended Crop:</strong> <span style='color:#1B5E20;'>{crop.upper()}</span>
         </div>
         """,
         unsafe_allow_html=True
     )
 
-    # ----------------------  FEATURE CONTRIBUTION GRAPH  ----------------------
-    st.subheader("📊 Feature Distribution")
+    # ---------------------- TOP 3 RECOMMENDATIONS ----------------------
+    if hasattr(model, "predict_proba"):
+        proba = model.predict_proba(sample_scaled)[0]
+        top3_idx = np.argsort(proba)[::-1][:3]
+        top3_labels = label_encoder.inverse_transform(top3_idx)
+        top3_scores = proba[top3_idx]
+
+        st.subheader("🥇 Top 3 Best-Suited Crops")
+        for name, score in zip(top3_labels, top3_scores):
+            st.write(f"**{name.upper()}** — {round(score*100, 2)}% suitability")
+
+    # ---------------------- WEATHER ADVISORY ----------------------
+    st.subheader("🌦️ Weather & Soil Advisory")
+
+    if humidity > 80:
+        st.info("💧 High humidity detected — good for rice, papaya, coconut.")
+    if ph < 6:
+        st.warning("⚠️ Soil is acidic — avoid crops like wheat and prefer tea or citrus crops.")
+    if temperature > 35:
+        st.error("🌡️ Very hot climate — choose heat-tolerant crops like millet or sorghum.")
+
+    if rainfall < 50:
+        st.warning("🌧️ Very low rainfall — prefer drought-resistant crops like chickpea or bajra.")
+
+    # ---------------------- INPUT FEATURE GRAPH ----------------------
+    st.subheader("📊 Input Feature Distribution")
 
     fig, ax = plt.subplots(figsize=(8, 4))
     features = ["N", "P", "K", "Temp", "Humidity", "pH", "Rainfall"]
@@ -110,11 +156,11 @@ if st.button("🌾 Recommend Best Crop", use_container_width=True):
 
     ax.bar(features, values, color="#2E7D32")
     ax.set_ylabel("Value")
-    ax.set_title("Input Feature Values")
+    ax.set_title("Soil & Climate Input Values")
 
     st.pyplot(fig)
 
-    # ----------------------  DOWNLOAD REPORT  ----------------------
+    # ----------------------  DOWNLOAD REPORT ----------------------
     st.subheader("📄 Download Prediction Report")
 
     report = f"""
@@ -129,6 +175,11 @@ if st.button("🌾 Recommend Best Crop", use_container_width=True):
     Rainfall: {rainfall}
 
     ➤ Recommended Crop: {crop.upper()}
+
+    Top 3 Crop Suitability:
+    1. {top3_labels[0].upper()} — {top3_scores[0]:.2f}
+    2. {top3_labels[1].upper()} — {top3_scores[1]:.2f}
+    3. {top3_labels[2].upper()} — {top3_scores[2]:.2f}
     """
 
     buffer = io.BytesIO()
