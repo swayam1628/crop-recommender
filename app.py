@@ -119,21 +119,6 @@ if st.button("🌾 Recommend Best Crop", use_container_width=True):
         for name, score in zip(top3_labels, top3_scores):
             st.write(f"**{name.upper()}** — {round(score*100, 2)}% suitability")
 
-   # ---------------------- WEATHER ADVISORY ----------------------
-st.subheader("🌦️ Weather & Soil Advisory")
-
-if humidity > 80:
-    st.info("💧 High humidity detected — good for rice, papaya, coconut.")
-
-if ph < 6:
-    st.warning("⚠️ Soil is acidic — avoid crops like wheat; prefer tea or citrus crops.")
-
-if temperature > 35:
-    st.error("🌡️ Very hot climate — choose heat-tolerant crops like millet or sorghum.")
-
-if rainfall < 50:
-    st.warning("🌧️ Very low rainfall — prefer drought-resistant crops like chickpea or bajra.")
-
     # ---------------------- INPUT FEATURE GRAPH ----------------------
     st.subheader("📊 Input Feature Distribution")
 
@@ -179,6 +164,3 @@ if rainfall < 50:
         file_name="crop_recommendation_report.txt",
         mime="text/plain"
     )
-
-
-
