@@ -87,15 +87,18 @@ with colB:
 
 st.markdown("---")
 
-# ----------------------  PREDICTION BUTTON  ----------------------
+# ----------------------  PREDICTION BUTTON & SAFE OUTPUTS  ----------------------
 if st.button("🌾 Recommend Best Crop", use_container_width=True):
 
+    # Create input
     sample = [[N, P, K, temperature, humidity, ph, rainfall]]
     sample_scaled = scaler.transform(sample)
 
+    # Prediction
     pred = model.predict(sample_scaled)
     crop = label_encoder.inverse_transform(pred)[0]
 
+    # Display main crop
     st.markdown(
         f"""
         <div class='prediction-box'>
@@ -106,83 +109,89 @@ if st.button("🌾 Recommend Best Crop", use_container_width=True):
         unsafe_allow_html=True
     )
 
-    # ---------------------- TOP 3 RECOMMENDATIONS ----------------------
+    # ---------------------- TOP 3 RECOMMENDATIONS (safe) ----------------------
+    # initialize defaults so variables always exist
+    top3_labels = ["N/A", "N/A", "N/A"]
+    top3_scores = [0.0, 0.0, 0.0]
+
     if hasattr(model, "predict_proba"):
-        proba = model.predict_proba(sample_scaled)[0]
-        top3_idx = np.argsort(proba)[::-1][:3]
-        top3_labels = label_encoder.inverse_transform(top3_idx)
-        top3_scores = proba[top3_idx]
+        try:
+            proba = model.predict_proba(sample_scaled)[0]
+            top3_idx = np.argsort(proba)[::-1][:3]
+            top3_labels = label_encoder.inverse_transform(top3_idx)
+            top3_scores = proba[top3_idx]
+        except Exception as e:
+            st.warning(f"Could not compute probabilities: {e}")
 
-        st.subheader("🥇 Top 3 Best-Suited Crops")
-        for name, score in zip(top3_labels, top3_scores):
-            st.write(f"**{name.upper()}** — {round(score * 100, 2)}% suitability")
+    st.subheader("🥇 Top 3 Best-Suited Crops")
+    for name, score in zip(top3_labels, top3_scores):
+        st.write(f"**{str(name).upper()}** — {round(float(score) * 100, 2)}% suitability")
 
-# ---------------------- WEATHER & SOIL ADVISORY ----------------------
-st.subheader("🌦️ Weather & Soil Advisory")
+    # ---------------------- WEATHER & SOIL ADVISORY ----------------------
+    st.subheader("🌦️ Weather & Soil Advisory")
 
-if humidity > 80:
-    st.info("💧 High humidity detected — good for rice, papaya, coconut.")
+    if humidity > 80:
+        st.info("💧 High humidity detected — good for rice, papaya, coconut.")
+    if ph < 6:
+        st.warning("⚠️ Soil is acidic — avoid crops like wheat; prefer tea, citrus, pineapple.")
+    if ph > 8:
+        st.warning("⚠️ Soil is highly alkaline — suitable for barley, cotton, and millets.")
+    if temperature > 35:
+        st.error("🌡️ Very hot climate — choose heat-tolerant crops like millet, sorghum, or groundnut.")
+    if temperature < 15:
+        st.info("❄️ Cool temperature detected — suitable for crops like peas, cabbage, and wheat.")
+    if rainfall < 50:
+        st.warning("🌧️ Very low rainfall — prefer drought-resistant crops like chickpea, bajra, or ragi.")
+    if rainfall > 200:
+        st.info("🌧️ Heavy rainfall — suitable for rice, jute, rubber, and sugarcane.")
 
-if ph < 6:
-    st.warning("⚠️ Soil is acidic — avoid wheat; choose tea, citrus, pineapple.")
+    # ---------------------- INPUT FEATURE GRAPH ----------------------
+    st.subheader("📊 Input Feature Distribution (Visualized)")
+    try:
+        fig, ax = plt.subplots(figsize=(8, 4))
+        features = ["N", "P", "K", "Temp", "Humidity", "pH", "Rainfall"]
+        values = [N, P, K, temperature, humidity, ph, rainfall]
+        ax.bar(features, values, color="#2E7D32")
+        ax.set_ylabel("Value")
+        ax.set_title("Soil & Climate Input Values")
+        st.pyplot(fig)
+    except Exception as e:
+        st.warning(f"Could not render chart: {e}")
 
-if ph > 8:
-    st.warning("⚠️ Highly alkaline soil — suitable for barley, cotton, millets.")
+    # ----------------------  DOWNLOAD REPORT (safe) ----------------------
+    st.subheader("📄 Download Prediction Report")
 
-if temperature > 35:
-    st.error("🌡️ Very hot climate — choose millet, sorghum, groundnut.")
+    # build report text using the safe top3 variables
+    report = f"""
+    Crop Recommendation Report
+    ---------------------------
+    Nitrogen (N): {N}
+    Phosphorus (P): {P}
+    Potassium (K): {K}
+    Temperature: {temperature}
+    Humidity: {humidity}
+    Soil pH: {ph}
+    Rainfall: {rainfall}
 
-if temperature < 15:
-    st.info("❄️ Cool climate — good for peas, cabbage, wheat.")
+    ➤ Recommended Crop: {crop.upper()}
 
-if rainfall < 50:
-    st.warning("🌧️ Low rainfall — choose bajra, ragi, chickpea.")
+    Top 3 Crop Suitability:
+    1. {str(top3_labels[0]).upper()} — {top3_scores[0]:.4f}
+    2. {str(top3_labels[1]).upper()} — {top3_scores[1]:.4f}
+    3. {str(top3_labels[2]).upper()} — {top3_scores[2]:.4f}
+    """
 
-if rainfall > 200:
-    st.info("🌧️ Heavy rainfall — suitable for rice, jute, sugarcane.")
+    try:
+        buffer = io.BytesIO()
+        buffer.write(report.encode())
+        buffer.seek(0)
+        st.download_button(
+            label="📥 Download Report",
+            data=buffer,
+            file_name="crop_recommendation_report.txt",
+            mime="text/plain"
+        )
+    except Exception as e:
+        st.error(f"Download failed: {e}")
 
-# ---------------------- INPUT FEATURE GRAPH ----------------------
-st.subheader("📊 Input Feature Distribution")
 
-fig, ax = plt.subplots(figsize=(8, 4))
-features = ["N", "P", "K", "Temp", "Humidity", "pH", "Rainfall"]
-values = [N, P, K, temperature, humidity, ph, rainfall]
-
-ax.bar(features, values, color="#2E7D32")
-ax.set_ylabel("Value")
-ax.set_title("Soil & Climate Input Values")
-
-st.pyplot(fig)
-
-# ----------------------  DOWNLOAD REPORT ----------------------
-st.subheader("📄 Download Prediction Report")
-
-report = f"""
-Crop Recommendation Report
----------------------------
-Nitrogen (N): {N}
-Phosphorus (P): {P}
-Potassium (K): {K}
-Temperature: {temperature}
-Humidity: {humidity}
-Soil pH: {ph}
-Rainfall: {rainfall}
-
-➤ Recommended Crop: {crop.upper()}
-
-Top 3 Crop Suitability:
-1. {top3_labels[0].upper()} — {top3_scores[0]:.2f}
-2. {top3_labels[1].upper()} — {top3_scores[1]:.2f}
-3. {top3_labels[2].upper()} — {top3_scores[2]:.2f}
-"""
-
-buffer = io.BytesIO()
-buffer.write(report.encode())
-buffer.seek(0)
-
-st.download_button(
-    label="📥 Download Report",
-    data=buffer,
-    file_name="crop_recommendation_report.txt",
-    mime="text/plain"
-)
