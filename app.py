@@ -80,7 +80,7 @@ with col5:
 with col6:
     ph = st.number_input("⚗️ Soil pH", min_value=0.0, max_value=14.0, value=6.5)
 
-# Line 3 → Center Temperature
+# Line 3 → Temperature Centered
 colA, colB, colC = st.columns([1, 2, 1])
 with colB:
     temperature = st.number_input("🌡️ Temperature (°C)", value=25.0)
@@ -90,15 +90,12 @@ st.markdown("---")
 # ----------------------  PREDICTION BUTTON  ----------------------
 if st.button("🌾 Recommend Best Crop", use_container_width=True):
 
-    # Create input
     sample = [[N, P, K, temperature, humidity, ph, rainfall]]
     sample_scaled = scaler.transform(sample)
 
-    # Prediction
     pred = model.predict(sample_scaled)
     crop = label_encoder.inverse_transform(pred)[0]
 
-    # Display main crop
     st.markdown(
         f"""
         <div class='prediction-box'>
@@ -127,65 +124,65 @@ if humidity > 80:
     st.info("💧 High humidity detected — good for rice, papaya, coconut.")
 
 if ph < 6:
-    st.warning("⚠️ Soil is acidic — avoid crops like wheat; prefer tea, citrus fruits, or pineapple.")
+    st.warning("⚠️ Soil is acidic — avoid wheat; choose tea, citrus, pineapple.")
 
 if ph > 8:
-    st.warning("⚠️ Soil is highly alkaline — suitable for barley, cotton, and millets.")
+    st.warning("⚠️ Highly alkaline soil — suitable for barley, cotton, millets.")
 
 if temperature > 35:
-    st.error("🌡️ Very hot climate — choose heat-tolerant crops like millet, sorghum, or groundnut.")
+    st.error("🌡️ Very hot climate — choose millet, sorghum, groundnut.")
 
 if temperature < 15:
-    st.info("❄️ Cool temperature detected — suitable for crops like peas, cabbage, and wheat.")
+    st.info("❄️ Cool climate — good for peas, cabbage, wheat.")
 
 if rainfall < 50:
-    st.warning("🌧️ Very low rainfall — prefer drought-resistant crops like chickpea, bajra, or ragi.")
+    st.warning("🌧️ Low rainfall — choose bajra, ragi, chickpea.")
 
 if rainfall > 200:
-    st.info("🌧️ Heavy rainfall — suitable for rice, jute, rubber, and sugarcane.")
-    
-    # ---------------------- INPUT FEATURE GRAPH ----------------------
-    st.subheader("📊 Input Feature Distribution")
+    st.info("🌧️ Heavy rainfall — suitable for rice, jute, sugarcane.")
 
-    fig, ax = plt.subplots(figsize=(8, 4))
-    features = ["N", "P", "K", "Temp", "Humidity", "pH", "Rainfall"]
-    values = [N, P, K, temperature, humidity, ph, rainfall]
+# ---------------------- INPUT FEATURE GRAPH ----------------------
+st.subheader("📊 Input Feature Distribution")
 
-    ax.bar(features, values, color="#2E7D32")
-    ax.set_ylabel("Value")
-    ax.set_title("Soil & Climate Input Values")
+fig, ax = plt.subplots(figsize=(8, 4))
+features = ["N", "P", "K", "Temp", "Humidity", "pH", "Rainfall"]
+values = [N, P, K, temperature, humidity, ph, rainfall]
 
-    st.pyplot(fig)
+ax.bar(features, values, color="#2E7D32")
+ax.set_ylabel("Value")
+ax.set_title("Soil & Climate Input Values")
 
-    # ----------------------  DOWNLOAD REPORT ----------------------
-    st.subheader("📄 Download Prediction Report")
+st.pyplot(fig)
 
-    report = f"""
-    Crop Recommendation Report
-    ---------------------------
-    Nitrogen (N): {N}
-    Phosphorus (P): {P}
-    Potassium (K): {K}
-    Temperature: {temperature}
-    Humidity: {humidity}
-    Soil pH: {ph}
-    Rainfall: {rainfall}
+# ----------------------  DOWNLOAD REPORT ----------------------
+st.subheader("📄 Download Prediction Report")
 
-    ➤ Recommended Crop: {crop.upper()}
+report = f"""
+Crop Recommendation Report
+---------------------------
+Nitrogen (N): {N}
+Phosphorus (P): {P}
+Potassium (K): {K}
+Temperature: {temperature}
+Humidity: {humidity}
+Soil pH: {ph}
+Rainfall: {rainfall}
 
-    Top 3 Crop Suitability:
-    1. {top3_labels[0].upper()} — {top3_scores[0]:.2f}
-    2. {top3_labels[1].upper()} — {top3_scores[1]:.2f}
-    3. {top3_labels[2].upper()} — {top3_scores[2]:.2f}
-    """
+➤ Recommended Crop: {crop.upper()}
 
-    buffer = io.BytesIO()
-    buffer.write(report.encode())
-    buffer.seek(0)
+Top 3 Crop Suitability:
+1. {top3_labels[0].upper()} — {top3_scores[0]:.2f}
+2. {top3_labels[1].upper()} — {top3_scores[1]:.2f}
+3. {top3_labels[2].upper()} — {top3_scores[2]:.2f}
+"""
 
-    st.download_button(
-        label="📥 Download Report",
-        data=buffer,
-        file_name="crop_recommendation_report.txt",
-        mime="text/plain"
-    )
+buffer = io.BytesIO()
+buffer.write(report.encode())
+buffer.seek(0)
+
+st.download_button(
+    label="📥 Download Report",
+    data=buffer,
+    file_name="crop_recommendation_report.txt",
+    mime="text/plain"
+)
